@@ -1,0 +1,91 @@
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
+  <script type="module">
+    const videoElement = document.getElementsByClassName('input_video')[0];
+    const canvasElement = document.getElementsByClassName('output_canvas')[0];
+    const canvasCtx = canvasElement.getContext('2d');
+    
+    function onResults(results) {
+      canvasCtx.save();
+      canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+      canvasCtx.drawImage(
+          results.image, 0, 0, canvasElement.width, canvasElement.height);
+      if (results.multiFaceLandmarks) {
+        for (const landmarks of results.multiFaceLandmarks) {
+          drawConnectors(canvasCtx, landmarks, FACEMESH_TESSELATION,
+                         {color: '#7bed7d', lineWidth: 1});
+          drawConnectors(canvasCtx, landmarks, FACEMESH_LIPS, {color: '#E0E0E0'});
+
+        }
+      }
+      drawConnectors(canvasCtx, results.poseLandmarks, POSE_CONNECTIONS,
+                 {color: '#00FF00', lineWidth: 4});
+      drawLandmarks(canvasCtx, results.poseLandmarks,
+                          {color: '#FF0000', lineWidth: 2});
+      // if (results.multiHandLandmarks) {
+      //     for (const landmarks of results.multiHandLandmarks) {
+      //       drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS,
+      //                     {color: '#00FF00', lineWidth: 5});
+      //       drawLandmarks(canvasCtx, landmarks, {color: '#FF0000', lineWidth: 2});
+
+      //     }
+      //   }
+        
+      canvasCtx.restore();
+    }
+
+    const pose = new Pose({locateFile: (file) => {
+      return `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`;
+    }});
+
+    pose.setOptions({
+      modelComplexity: 1,
+      smoothLandmarks: true,
+      enableSegmentation: true,
+      smoothSegmentation: true,
+      minDetectionConfidence: 0.5,
+      minTrackingConfidence: 0.5
+    });
+    pose.onResults(onResults);
+    
+    const faceMesh = new FaceMesh({locateFile: (file) => {
+      return `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`;
+    }});
+
+
+    faceMesh.setOptions({
+      maxNumFaces: 1,
+      refineLandmarks: true,
+      minDetectionConfidence: 0.5,
+      minTrackingConfidence: 0.5
+    });
+    faceMesh.onResults(onResults);
+
+
+
+    const camera = new Camera(videoElement, {
+      onFrame: async () => {
+        await faceMesh.send({image: videoElement});
+        // await pose.send({image: videoElement});
+      },
+      width: 1280,
+      height: 720
+    });
+    camera.start();
+    </script>
+</head>
+
+<body>
+  <div class="container">
+    <video class="input_video"></video>
+    <canvas class="output_canvas" width="1280px" height="720px"></canvas>
+    <h1>HII</h1>
+  </div>
+</body>
+</html>
